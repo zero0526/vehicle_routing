@@ -1,0 +1,4 @@
+#!/bin/sh
+cd `dirname $0`
+../src/week6 -n .:../src $*
+# for shared lib, use: opp_run -l ../src/week6 -n .:../src $*

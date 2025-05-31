@@ -1,0 +1,149 @@
+file 45579 1744874033                                           
+version 3
+run Default-0-20250417-14:13:40-48606
+attr configname Default
+attr datetime 20250417-14:13:40
+attr datetimef 20250417-141340
+attr experiment Default
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvarsd ""
+attr iterationvarsf ""
+attr measurement ""
+attr network RSUExampleScenario
+attr processid 48606
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 0
+config image-path ../../../inetpr/images:../../../veinspr/images
+config cmdenv-express-mode true
+config cmdenv-autoflush true
+config cmdenv-status-frequency 1s
+config **.cmdenv-log-level info
+config image-path ../../images
+config network RSUExampleScenario
+config debug-on-errors true
+config print-undisposed true
+config sim-time-limit 200s
+config **.scalar-recording true
+config **.vector-recording true
+config *.playgroundSizeX 2500m
+config *.playgroundSizeY 2500m
+config *.playgroundSizeZ 50m
+config *.annotations.draw true
+config *.obstacles.obstacles "xmldoc(\"config.xml\", \"//AnalogueModel[@type='SimpleObstacleShadowing']/obstacles\")"
+config *.manager.updateInterval 1s
+config *.manager.host "\"localhost\""
+config *.manager.port 9999
+config *.manager.autoShutdown true
+config *.manager.launchConfig "xmldoc(\"erlangen.launchd.xml\")"
+config *.manager.trafficLightModuleType "\"org.car2x.veins.nodes.TrafficLight\""
+config *.tls[*].mobility.x 0
+config *.tls[*].mobility.y 0
+config *.tls[*].mobility.z 3
+config *.tls[*].applType "\"org.car2x.veins.modules.application.traci.TraCIDemoTrafficLightApp\""
+config *.tls[*].logicType "\"org.car2x.veins.modules.world.traci.trafficLight.logics.TraCITrafficLightSimpleLogic\""
+config *.rsu[0].mobility.x 2000
+config *.rsu[0].mobility.y 2000
+config *.rsu[0].mobility.z 3
+config *.rsu[*].applType "\"TraCIDemoRSU11p\""
+config *.rsu[*].appl.headerLength "80 bit"
+config *.rsu[*].appl.sendBeacons false
+config *.rsu[*].appl.dataOnSch false
+config *.rsu[*].appl.beaconInterval 1s
+config *.rsu[*].appl.beaconUserPriority 7
+config *.rsu[*].appl.dataUserPriority 5
+config *.rsu[*].nic.phy80211p.antennaOffsetZ "0 m"
+config *.connectionManager.sendDirect true
+config *.connectionManager.maxInterfDist 2600m
+config *.connectionManager.drawMaxIntfDist false
+config *.**.nic.mac1609_4.useServiceChannel false
+config *.**.nic.mac1609_4.txPower 20mW
+config *.**.nic.mac1609_4.bitrate 6Mbps
+config *.**.nic.phy80211p.minPowerLevel -110dBm
+config *.**.nic.phy80211p.useNoiseFloor true
+config *.**.nic.phy80211p.noiseFloor -98dBm
+config *.**.nic.phy80211p.decider "xmldoc(\"config.xml\")"
+config *.**.nic.phy80211p.analogueModels "xmldoc(\"config.xml\")"
+config *.**.nic.phy80211p.usePropagationDelay true
+config *.**.nic.phy80211p.antenna "xmldoc(\"antenna.xml\", \"/root/Antenna[@id='monopole']\")"
+config *.node[*].nic.phy80211p.antennaOffsetY "0 m"
+config *.node[*].nic.phy80211p.antennaOffsetZ "1.895 m"
+config *.node[*].applType "\"TraCIDemo11p\""
+config *.node[*].appl.headerLength "80 bit"
+config *.node[*].appl.sendBeacons false
+config *.node[*].appl.dataOnSch false
+config *.node[*].appl.beaconInterval 1s
+config *.node[*].veinsmobility.x 0
+config *.node[*].veinsmobility.y 0
+config *.node[*].veinsmobility.z 0
+config *.node[*].veinsmobility.setHostSpeed false
+config *.node[*0].veinsmobility.accidentCount 1
+config *.node[*0].veinsmobility.accidentStart 73s
+config *.node[*0].veinsmobility.accidentDuration 50s
+
+vector 0 RSUExampleScenario.rsu[0].nic.phy80211p RadioState ETV
+vector 1 RSUExampleScenario.rsu[0].nic.phy80211p RadioChannel ETV
+vector 2 RSUExampleScenario.node[0].nic.phy80211p RadioState ETV
+vector 3 RSUExampleScenario.node[0].nic.phy80211p RadioChannel ETV
+vector 4 RSUExampleScenario.manager posx ETV
+vector 5 RSUExampleScenario.manager posy ETV
+vector 6 RSUExampleScenario.node[1].nic.phy80211p RadioState ETV
+vector 7 RSUExampleScenario.node[1].nic.phy80211p RadioChannel ETV
+vector 8 RSUExampleScenario.manager posx ETV
+vector 9 RSUExampleScenario.manager posy ETV
+vector 10 RSUExampleScenario.node[2].nic.phy80211p RadioState ETV
+vector 11 RSUExampleScenario.node[2].nic.phy80211p RadioChannel ETV
+vector 12 RSUExampleScenario.manager posx ETV
+vector 13 RSUExampleScenario.manager posy ETV
+vector 14 RSUExampleScenario.node[3].nic.phy80211p RadioState ETV
+vector 15 RSUExampleScenario.node[3].nic.phy80211p RadioChannel ETV
+vector 16 RSUExampleScenario.manager posx ETV
+vector 17 RSUExampleScenario.manager posy ETV
+vector 18 RSUExampleScenario.node[4].nic.phy80211p RadioState ETV
+vector 19 RSUExampleScenario.node[4].nic.phy80211p RadioChannel ETV
+vector 20 RSUExampleScenario.manager posx ETV
+vector 21 RSUExampleScenario.manager posy ETV
+vector 22 RSUExampleScenario.manager speed ETV
+vector 23 RSUExampleScenario.manager speed ETV
+vector 24 RSUExampleScenario.manager speed ETV
+vector 25 RSUExampleScenario.manager speed ETV
+vector 26 RSUExampleScenario.manager speed ETV
+vector 27 RSUExampleScenario.manager acceleration ETV
+vector 28 RSUExampleScenario.manager co2emission ETV
+vector 29 RSUExampleScenario.manager acceleration ETV
+vector 30 RSUExampleScenario.manager co2emission ETV
+vector 31 RSUExampleScenario.manager acceleration ETV
+vector 32 RSUExampleScenario.manager co2emission ETV
+vector 33 RSUExampleScenario.manager acceleration ETV
+vector 34 RSUExampleScenario.manager co2emission ETV
+vector 35 RSUExampleScenario.manager acceleration ETV
+vector 36 RSUExampleScenario.manager co2emission ETV
+32	5397 753 4 37 3 36 34 0.973 8.6421348344942 141.22916116632 850.38928879845
+31	6150 848 4 37 3 36 34 -4.5 2.2085159282223 10.042741550896 142.27531766531
+24	6998 856 3 37 2 36 35 4.212089624806 14.300040122416 383.29453033406 4509.0627487398
+13	7854 722 2 37 1 36 36 34.366055907156 126.6 3652.8333715062 409159.98579521
+12	8576 772 2 37 1 36 36 23.4 226.57289986782 4218.7106447883 742845.25039409
+30	9348 831 4 41 3 40 38 0.973 8.8726884508844 155.56403401049 911.3961590048
+29	10179 912 4 41 3 40 38 -4.5 2.2409947683895 10.287406608733 190.61511516257
+23	11091 929 3 41 2 40 39 0 14.537125997601 374.65189689011 4268.8215084847
+9	12020 862 2 41 1 40 40 123.48326231879 226.6 6804.5978958136 1233617.4870584
+8	12882 800 2 41 1 40 40 23.4 126.6 2732.0065767556 253866.26079487
+28	13682 1307 4 62 3 61 59 0.973 9.8653574379455 273.82658542313 1825.7107078613
+27	14989 1472 4 62 3 61 59 -4.5 2.3354855934042 11.66686114621 311.82366204064
+22	16461 1481 3 62 2 61 60 3.7961614444558 15.48343161012 667.4745489173 8041.7565307738
+5	17942 1127 2 62 1 61 61 23.4 126.6 4437.0188105812 435571.39219946
+4	19069 1294 2 62 1 61 61 23.4 223.4 7442.7045699391 1202198.9450087
+34	20363 2305 4 104 3 103 101 0.973 8.8439154363096 338.37397397819 1743.6455268116
+33	22668 2634 4 104 3 103 101 -4.4978860544332 2.3349441098608 10.020840345633 325.31694527668
+25	25302 2532 3 104 2 103 102 3.9572089270348 14.098074729697 1166.400652461 14327.719253095
+17	27834 2224 2 104 1 103 103 26.6 323.4 15727.989867496 3410267.7954096
+16	30058 2092 2 104 1 103 103 23.4 323.4 21646.686532027 5536239.0349856
+36	32150 2668 4 118 3 117 115 0.973 7.4168323749867 337.86149784824 1476.1532184647
+35	34818 3036 4 118 3 117 115 -4.4953350014985 2.1525565232569 8.1381211116366 308.77506384981
+26	37854 2905 3 118 2 117 116 3.3144559749427 12.264090066966 1160.7235319173 12401.917113899
+21	40759 2401 2 118 1 117 117 26.6 226.6 16659.523852413 3017196.3976999
+20	43160 2418 2 118 1 117 117 26.6 326.6 20534.22936855 4803551.7594407
+
