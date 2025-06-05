@@ -52,7 +52,8 @@
   ../../veinspr/src/veins/modules/mobility/traci/TraCICommandInterface.h \
   ../../veinspr/src/veins/modules/world/traci/trafficLight/TraCITrafficLightProgram.h \
   ../../veinspr/src/veins/modules/application/traci/TraCIDemo11p.h \
-  veins/Constant.h veins/Json.h \
+  veins/TaskGenerator.h veins/XMLProcessor.h veins/ET.h \
+  veins/GraphProcessor.h veins/Constant.h veins/Json.h \
   ../../veinspr/src/veins/modules/application/traci/TraCIDemo11pMessage_m.h
 veins/VehicleControlApp.h:
 ../../veinspr/src/veins/veins.h:
@@ -108,6 +109,10 @@ veins/VehicleControlApp.h:
 ../../veinspr/src/veins/modules/mobility/traci/TraCICommandInterface.h:
 ../../veinspr/src/veins/modules/world/traci/trafficLight/TraCITrafficLightProgram.h:
 ../../veinspr/src/veins/modules/application/traci/TraCIDemo11p.h:
+veins/TaskGenerator.h:
+veins/XMLProcessor.h:
+veins/ET.h:
+veins/GraphProcessor.h:
 veins/Constant.h:
 veins/Json.h:
 ../../veinspr/src/veins/modules/application/traci/TraCIDemo11pMessage_m.h:

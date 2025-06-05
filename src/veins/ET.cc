@@ -64,24 +64,44 @@ void ET::loadXML(const std::string &xmlPath)
                 tagContent.pop_back();
             }
 
-            std::istringstream iss(tagContent);
+            // std::istringstream iss(tagContent);
+            // std::string tagName;
+            // iss >> tagName;
+
+            // ET *node = new ET(tagName);
+
+            // std::string attr;
+            // while (iss >> attr)
+            // {
+            //     size_t eq = attr.find('=');
+            //     if (eq != std::string::npos)
+            //     {
+            //         std::string key = attr.substr(0, eq);
+            //         std::string value = attr.substr(eq + 1);
+            //         if (!value.empty() && value.front() == '\"' && value.back() == '\"')
+            //             value = value.substr(1, value.size() - 2);
+            //         node->attrs[key] = value;
+            //     }
+            // }
+
+            // nodeStack.top()->children.push_back(node);
+
+            // if (!selfClosing)
+            //     nodeStack.push(node);
+                        std::istringstream iss(tagContent);
             std::string tagName;
             iss >> tagName;
 
             ET *node = new ET(tagName);
 
-            std::string attr;
-            while (iss >> attr)
-            {
-                size_t eq = attr.find('=');
-                if (eq != std::string::npos)
-                {
-                    std::string key = attr.substr(0, eq);
-                    std::string value = attr.substr(eq + 1);
-                    if (!value.empty() && value.front() == '\"' && value.back() == '\"')
-                        value = value.substr(1, value.size() - 2);
-                    node->attrs[key] = value;
-                }
+            std::regex attrRegex(R"raw((\w+)\s*=\s*"(.*?)")raw");
+            auto attrBegin = std::sregex_iterator(tagContent.begin(), tagContent.end(), attrRegex);
+            auto attrEnd = std::sregex_iterator();
+            for (auto it = attrBegin; it != attrEnd; ++it) {
+                std::smatch match = *it;
+                std::string key = match[1].str();
+                std::string value = match[2].str();
+                node->attrs[key] = value;
             }
 
             nodeStack.top()->children.push_back(node);

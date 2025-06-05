@@ -6,45 +6,39 @@
 #include <set>
 #include "XMLProcessor.h"
 #include <limits>
+#include "GraphProcessor.h"
 
-struct DijkstraResult
+struct TimeWindow
 {
-    std::unordered_map<std::string, float> dist;
-    std::unordered_map<std::string, std::string> prev;
+    float earlyTime;
+    float lateTime;
+    TimeWindow(){}
+    TimeWindow(float earlyTime, float lateTime):earlyTime(earlyTime),lateTime(lateTime) {}
 };
+
 
 class TaskGenerator
 {
 
 public:
     TaskGenerator(
-        const std::set<std::string> nodes,
-        const std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> edges,
-        const std::unordered_map<std::string, std::vector<std::string>> toNodes) : nodes(nodes), edges(edges), toNodes(toNodes) {}
-    std::unordered_map<std::string, std::pair<float, float>> genTImeWindow(int n);
-    std::vector<std::vector<std::string>> kShortestPath(std::string source, std::string target, int k);
-    bool feasible(std::vector<std::string> sources, std::vector<std::string> targets);
-    bool canAssign(std::string source, std::string target);
-    float pathCost(std::vector<std::string> path)
-    {
-        float cost = 0;
-        for (int i = 1; i < path.size(); i++)
-        {
-            auto it = this->edges.at({path[i - 1], path[i]});
-            cost += it.len / it.speed;
-        }
-        if(!cost)
-            return std::numeric_limits<float>::infinity();
-        return cost;
+        const std::unordered_map<std::string, std::vector<Edge>> fromEdges,
+    const std::unordered_map<std::string, std::vector<Edge>> toEdges,
+    std::unordered_map<std::string, std::pair<float, float>> edges) : edges(edges), fromEdges(fromEdges), toEdges(toEdges){
+        graphProcessor = GraphProcessor(fromEdges, toEdges);
     }
-
+    TaskGenerator():        fromEdges({}),
+        toEdges({}),
+        graphProcessor() {}
+    std::unordered_map<std::string, TimeWindow> genTimeWindow(int n);
+    std::pair<std::vector<std::string>, float> findBestTimeWindowPath(std::string source, std::pair<std::string,TimeWindow> target);
+    std::string joinPath(const std::vector<std::string>& path);
+    float timeFunc(std::vector<std::string>path);
+    std::unordered_map<float, std::vector<std::string>> findKShortestPaths(const std::string &sourceId, const std::string &targetId, int k);
+    bool feasible(std::vector<std::string> sources, std::vector<std::string> targets);
 private:
-    const std::set<std::string> nodes;
-    const std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> edges;
-    const std::unordered_map<std::string, std::vector<std::string>> toNodes;
-    DijkstraResult dijkstra(const std::string& source,
-                            const std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash>& customEdges);
-
-    std::vector<std::string> reconstructPath(const std::string& source, const std::string& target,
-                                             const std::unordered_map<std::string, std::string>& prev);
+    std::unordered_map<std::string, std::pair<float, float>> edges;
+     std::unordered_map<std::string, std::vector<Edge>> fromEdges;
+     std::unordered_map<std::string, std::vector<Edge>> toEdges;
+    GraphProcessor graphProcessor;
 };

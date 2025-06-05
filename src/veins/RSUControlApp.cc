@@ -15,15 +15,27 @@
 #include <unordered_set>
 #include "ET.h"
 #include "veins/modules/application/traci/TraCIDemo11pMessage_m.h"
-//#include "DijkstraPath.h"
 #include "XMLProcessor.h"
 #include "GraphProcessor.h"
 #include "TaskGenerator.h"
 #include "PairAssigner.h"
-#include "Utils.h"
+#include "HungarianAlgo.h"
+#include <cctype>
+#include <cstdlib>
+
 using namespace veins;
 
 Register_Class(RSUControlApp);
+
+std::string trim(const std::string& s) {
+    size_t start = s.find_first_not_of(" \t\n\r\f\v");
+    size_t end = s.find_last_not_of(" \t\n\r\f\v");
+
+    if (start == std::string::npos)
+        return "";
+
+    return s.substr(start, end - start + 1);
+}
 
 void RSUControlApp::initialize(int stage)
 {
@@ -34,20 +46,40 @@ void RSUControlApp::initialize(int stage)
     }
     else if (stage == 1) {
         loadData();
+        initCSV("vehicle.csv");
     }
-
-
+}
+void RSUControlApp::initCSV(const std::string& filename){
+    std::ofstream file;
+    file.open("vehicle.csv", std::ios::app);
+    if (file.is_open()) {
+        file<<"Xe_ID,OriginalRoute,Thoi_gian_chay,Do_lech,Gia_tri_ham_muc_tieu"<<"\n";
+        file.close();
+    }
+    else {
+        EV << "Khong the mo file: " << "vehicle.csv" << endl;
+    }
 }
 
 void RSUControlApp::finish()
 {
+    std::ofstream file;
+    file.open("vehicle.csv", std::ios::app);
+    if (file.is_open()) {
+        file<<"totalcar,timeExecute"<<"\n";
+        file <<totalCar<<","<< timeExecute<< "\n";
+        file.close();
+        system("python3 /home/ad/Documents/PracticeCpp/log2ggdriver.py");
+    }
+    else {
+        EV << "Khong the mo file: " << "vehicle.csv" << endl;
+    }
     DemoBaseApplLayer::finish();
+
 }
 
 void RSUControlApp::onBSM(DemoSafetyMessage* bsm)
 {
-//    EV<<"Position: "<<bsm->getSenderPos().str()<<endl;
-//    EV<<"Speed: "<<bsm->getSenderSpeed().str()<<bsm->getPsid()<<endl;
 }
 DemoMessageData RSUControlApp::fromJson(std::string s){
     DemoMessageData d;
@@ -67,69 +99,53 @@ std::string RSUControlApp::toJson(operationMess om){
     jMess.add("data", om.data);
     return jMess.toJson();
 }
+std::string toString(std::vector<std::string> vec){
+    std::string str="";
+    for(std::string el:vec){
+        if(!str.length())str+=el;
+        else str+= " " + el;
+    }
+    return str;
+}
 void RSUControlApp::loadData(){
     XMLProcessor root("/home/ad/omnetpp-6.1/samples/week6/simulations/veins/map.net.xml");
-    this->nodes = root.getNodes();
-    this->edges = root.getEdges();
-    this->toNodes = root.getToNodes();
-    TaskGenerator task(root.getNodes(), root.getEdges(), root.getToNodes());
-    std::unordered_map<std::string, std::pair<float, float>>assign =task.genTImeWindow(10);
-    for(auto[k, v]:assign){
-        EV<<k<<" "<<v.first<<" "<<v.second<<endl;
+    toEdges = root.getToEdge();
+    fromEdges = root.getFromEdge();
+    edges = root.getEdges();
+    ET* roota = new ET("root");
+    roota->loadXML("/home/ad/omnetpp-6.1/samples/week6/simulations/veins/map.rou.xml");
+    std::vector<ET*> vehicles = roota->findAll("vehicle");
+    totalCar = vehicles.size();
+    for (ET* vehicle : vehicles) {
+        std::string route = vehicle->findNode("route")->getData("edges");
+        float startTime = std::stof(vehicle->getData("depart"));
+        std::istringstream iss(route);
+        std::string sourceC;
+        iss>> sourceC;
+        sourceCar[sourceC] = {route, startTime};
     }
-    int cnt = 0;
-    for(std::string n:nodes){
-        if(assign.find(n)!=assign.end())continue;
-        cnt+=1;
-        this->sources.push_back(n);
-        if(cnt==10)break;
+    GraphProcessor graphProcessor(fromEdges, toEdges);
+    TaskGenerator taskGenerator(fromEdges, toEdges, edges);
+    std::vector<std::pair<std::string, float>> sources;
+
+    for (const auto& source : sourceCar) {
+        sources.push_back({source.first,source.second.second});
     }
-    std::vector<std::string> targets;
-    for(auto[k, v]:assign)targets.push_back(k);
-    bool feasible = task.feasible(this->sources, targets);
-    if(feasible){
-        for(std::string s: this->sources)EV<<s<<" ";
-        EV<<endl;
-        for(std::string t: targets)EV<<t<<" ";
-    }else{
-        EV<<"False"<<endl;
-    }
-    for(auto[k,v]: this->edges){
-        this->E2Node[v.id] = {k.first, k.second};
+    std::unordered_map<std::string, TimeWindow> timewindows = taskGenerator.genTimeWindow(sources.size());
+    PairAssigner pairAssigner(sources, timewindows, edges, taskGenerator);
+    int i = 0;
+    simtime_t getStarted = simTime();
+    std::vector<AssignmentResult> results = pairAssigner.assign();
+    timeExecute = (simTime() - getStarted).dbl()*1000.0;
+    for(AssignmentResult rs: results){
+        std::string originalRoute= sourceCar[rs.source].first;
+        resultsRoute[originalRoute] = {toString(rs.path), sourceCar[rs.source].second, rs.timeWindow, rs.departureTime};
     }
 }
-//int RSUControlApp::countVehicle(){
-//    ET* root = new ET("root");
-//    root->loadXML("/home/ad/omnetpp-6.1/samples/week6/simulations/veins/map.rou.xml");
-//    vector<ET*> vehicles = root->findAll("vehicle");
-//    for(ET* v: vehicles){
-//        this->sources.push_back(this->E2node[Utils::S2Edge(v.findNode("route")->getData("edges"))].first);
-//    }
-//    return vehicles.size();
-//}
-//std::pair<std::string,float> RSUControlApp::getNewPath(std::string routeId){
-//    std::istringstream iss(routeId);
-//    std::string word;
-//
-//    std::string source, target;
-//    bool isFirst = true;
-//    while (iss >> word) {
-//        if (isFirst) {
-//            source = word;
-//            isFirst = false;
-//        }
-//        target = word;
-//    }
-//    std::vector<std::string> path = dp.findShortestPath(source, target);
-//    std::string spath="";
-//    for (size_t i = 0; i < path.size(); ++i) {
-//        spath += path[i];
-//        if (i < path.size() - 1) spath += " ";
-//    }
-//    float cost = dp.CalcuShortestPath(source, target);
-//    return {spath, cost};
-//}
 
+predict RSUControlApp::getNewRoute(std::string oriRoute){
+    return resultsRoute[trim(oriRoute)];
+}
 void RSUControlApp::onWSM(BaseFrame1609_4* wsm)
 {
     cPacket* enc = wsm->getEncapsulatedPacket();
@@ -144,25 +160,28 @@ void RSUControlApp::onWSM(BaseFrame1609_4* wsm)
 
             std::string s =  bc->getDemoData();
             DemoMessageData d = fromJson(s);
-            EV<<"aby :"<<d.routeId<<endl;
             d.senderId = bc->getSenderAddress();
+
             if(sendBeacon != NULL){
                 if(sendBeacon->isScheduled()){
                     cancelEvent(sendBeacon);
                 }
 
-//            auto [newRoadIds, cost] = getNewPath(d.routeId);
-//            if(newRoadIds==""){
-//                EV<<-1<<"not found";
-//                newRoadIds = d.routeId;
-//            }
-//            EV<<newRoadIds<< " "<<cost<<" "<<bc->getSenderAddress()<<endl;
             TraCIDemo11pMessage* rsuBeacon = new TraCIDemo11pMessage();
             std::string targetId  = std::string(mergeContent(d.senderId));
             std::string action = "changeRoute";
 
             Json jData;
-            jData.add("roadIds","newroadId");
+            predict predictData = getNewRoute(d.routeId);
+            std::string newRouteId = predictData.routeId;
+            float stime = predictData.startTime;
+            TimeWindow timeWindow = predictData.timeWindow;
+            float departTime = predictData.depatureTime;
+            jData.add("roadIds",newRouteId);
+            jData.add("starttime", std::to_string(stime));
+            jData.add("early", std::to_string(timeWindow.earlyTime));
+            jData.add("lately", std::to_string(timeWindow.lateTime));
+            jData.add("departureTime",std::to_string(departTime));
             operationMess om = operationMess(targetId, action, jData.toJson());
             std::string message = toJson(om);
             rsuBeacon->setDemoData(message.c_str());
@@ -173,46 +192,15 @@ void RSUControlApp::onWSM(BaseFrame1609_4* wsm)
             populateWSM(WSM);
             send(WSM,lowerLayerOut);
             }
-        }else{
-            // std::string s =  bc->getDemoData();
-            // DemoMessageData d = fromJson(s);
-            // EV<<"aby :"<<d.routeId<<endl;
-            // d.senderId = bc->getSenderAddress();
-            // if(sendBeacon != NULL){
-            //     if(sendBeacon->isScheduled()){
-            //         cancelEvent(sendBeacon);
-            //     }
-
-            // auto [newRoadIds, cost] = getNewPath(d.routeId);
-            // if(newRoadIds==""){
-            //     EV<<-1<<"not found";
-            //     newRoadIds = d.routeId;
-            // }
-            // EV<<newRoadIds<< " "<<bc->getSenderAddress()<<endl;
-            // TraCIDemo11pMessage* rsuBeacon = new TraCIDemo11pMessage();
-            // std::string targetId  = std::string(mergeContent(d.senderId));
-            // std::string action = "kafka";
-
-            // Json jData;
-            // jData.add("roadIds",newRoadIds);
-            // operationMess om = operationMess(targetId, action, jData.toJson());
-            // std::string message = toJson(om);
-            // rsuBeacon->setDemoData(message.c_str());
-
-            // rsuBeacon->setSenderAddress(myId);
-            // BaseFrame1609_4* WSM = new BaseFrame1609_4();
-            // WSM->encapsulate(rsuBeacon);
-            // populateWSM(WSM);
-            // send(WSM,lowerLayerOut);
-//            }
+            else{
+                EV<<"sendBeacon is NULL"<<endl;
+            }
         }
     }
 }
 
 void RSUControlApp::onWSA(DemoServiceAdvertisment* wsa)
 {
-    // Your application has received a service advertisement from another car or RSU
-    // code for handling the message goes here, see TraciDemo11p.cc for examples
 }
 
 void RSUControlApp::handleSelfMsg(cMessage* msg)

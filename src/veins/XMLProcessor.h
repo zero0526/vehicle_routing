@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <string>
 #include "ET.h"
@@ -12,7 +13,7 @@ struct Edge
     float len, speed;
     Edge(std::string id, float len, float speed) : id(id), len(len), speed(speed) {}
     Edge(std::string id) : id(id), len(0), speed(0) {}
-    Edge() : id(""), len(0), speed(0) {}
+    Edge() : len(0), speed(0) {}
 };
 
 struct pair_hash
@@ -30,14 +31,11 @@ class XMLProcessor
 {
 public:
     XMLProcessor(const std::string &filePath);
-    std::set<std::string> getNodes() const { return nodes; }
-    std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> getEdges() const { return edges; }
-    std::unordered_map<std::string, std::vector<std::string>> getFromNodes() const { return fromNodes; }
-    std::unordered_map<std::string, std::vector<std::string>> getToNodes() const { return toNodes; }
-
+    std::unordered_map<std::string, std::vector<Edge>> getFromEdge() const { return fromEdge; }
+    std::unordered_map<std::string, std::vector<Edge>> getToEdge() const { return toEdge; }
+    std::unordered_map<std::string, std::pair<float, float>> getEdges() const { return edges; }
 private:
-    std::set<std::string> nodes;
-    std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> edges;
-    std::unordered_map<std::string, std::vector<std::string>> fromNodes;
-    std::unordered_map<std::string, std::vector<std::string>> toNodes;
+    std::unordered_map<std::string, std::pair<float, float>> edges;
+    std::unordered_map<std::string, std::vector<Edge>> fromEdge;
+    std::unordered_map<std::string, std::vector<Edge>> toEdge;
 };

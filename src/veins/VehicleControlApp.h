@@ -26,7 +26,7 @@
 
 #include "veins/modules/application/ieee80211p/DemoBaseApplLayer.h"
 #include "veins/modules/application/traci/TraCIDemo11p.h"
-
+#include "TaskGenerator.h"
 using namespace omnetpp;
 
 namespace veins {
@@ -56,11 +56,20 @@ protected:
     void onBSM(DemoSafetyMessage* bsm) override;
     void onWSM(BaseFrame1609_4* wsm) override;
     void onWSA(DemoServiceAdvertisment* wsa) override;
+    float calculateDeviation(TimeWindow timeWindow, float departureTime);
 
     void handleSelfMsg(cMessage* msg) override;
     void handlePositionUpdate(cObject* obj) override;
     void handleLowerMsg(cMessage* msg) override;
 private:
+    simtime_t startTime;
+    TimeWindow timewindow;
+    float depatureTi;
+    bool hasArrive =false;
+    bool isMove= false;
+    std::string target="";
+    std::string originalRoute;
+    float absStartTime;
     std::string toJson();
     operationMess fromJson(std::string s);
     bool hasStopped = false;

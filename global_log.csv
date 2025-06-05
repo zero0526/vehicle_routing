@@ -1,0 +1,5 @@
+totalcar,timeExecute,map,algorithm,version,num_fail,sum_objective,sum_time,sum_deviation,local_time
+2,0,map,dijkstra,dijkstra,0,201.6238,358.0,144.0999,2025-06-06_05-28-46
+4,0,map,dijkstra,dijkstra,1,419.226,578.0,140.3613,2025-06-06_05-29-01
+8,0,map,dijkstra,dijkstra,2,779.431,1125.0,330.9038,2025-06-06_05-29-18
+16,0,map,dijkstra,dijkstra,4,1447.8814000000002,1959.927,433.20179999999993,2025-06-06_06-14-05

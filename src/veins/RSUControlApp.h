@@ -35,6 +35,8 @@
 #include "GraphProcessor.h"
 #include "TaskGenerator.h"
 #include "PairAssigner.h"
+#include "HungarianAlgo.h"
+
 using namespace omnetpp;
 
 namespace veins {
@@ -49,38 +51,33 @@ struct operationMess{
     std::string targetId;
     std::string action;
     std::string data;
+
     operationMess(std::string targetId, std::string action, std::string data)
             : targetId(targetId), action(action), data(data) {}
 };
-struct NodeInfo {
-    std::string to_node;
-    std::string edge_id;
-    double length;
-    double speed;
-    NodeInfo(std::string to_node, std::string edge_id, double length, double speed)
-        : to_node(to_node), edge_id(edge_id), length(length), speed(speed){}
+struct predict{
+    std::string routeId;
+    float startTime;
+    float depatureTime;
+    TimeWindow timeWindow;
+    predict(std::string routeId, float startTime, TimeWindow timeWindow, float depatureTime)
+            : routeId(routeId), startTime(startTime), timeWindow(timeWindow), depatureTime(depatureTime) {}
+    predict(){}
 };
- 
 class RSUControlApp : public TraCIDemoRSU11p {
 public:
     void initialize(int stage) override;
     void finish() override;
     std::string toJson(operationMess om);
     DemoMessageData fromJson(std::string bc);
-    std::unordered_map<std::string, std::vector<NodeInfo>> node_dict;
-//    std::unordered_map<std::string, EdgeInfo> edge_dict;
-    std::unordered_map<std::string,std::vector<std::string>> toEdge;
-    std::unordered_map<std::string,std::vector<std::string>> fromEdge;
+    std::unordered_map<std::string, std::vector<Edge>> fromEdges;
+    std::unordered_map<std::string, std::vector<Edge>> toEdges;
+    std::unordered_map<std::string, std::pair<float, float>> edges;
+    std::unordered_map<std::string, std::pair<std::string, float>> sourceCar;
+    std::unordered_map<std::string, predict> resultsRoute;
     void loadData();
-    std::pair<std::string,float> getNewPath(std::string routeId);
-    std::set<std::string> nodes;
-    std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> edges;
-    std::unordered_map<std::string, std::vector<std::string>> toNodes;
-    std::unordered_map<std::string, std::pair<std::string, std::string>> E2Node;
-    int countVehicle();
-    std::unordered_map<std::string, std::pair<float, float>> timeWindows;
-    std::vector<std::string> sources; 
-    std::vector<std::string> canBeTarget;
+    void initCSV(const std::string& filename);
+    predict getNewRoute(std::string oriRoute);
 
 protected:
     void onBSM(DemoSafetyMessage* bsm) override;
@@ -90,6 +87,8 @@ protected:
     void handleSelfMsg(cMessage* msg) override;
     void handlePositionUpdate(cObject* obj) override;
 private:
+    int totalCar;
+    double timeExecute;
     bool hasStopped = false;
     int subscribedServiceId = 0;
     cMessage* sendBeacon;

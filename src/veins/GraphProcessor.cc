@@ -1,77 +1,92 @@
 #include "GraphProcessor.h"
 #include <queue>
 #include <limits>
-#include <unordered_map>
-#include<algorithm>
-void GraphProcessor::findShortestPath(const std::string& source, const std::string& target) {
+#include <unordered_set>
+#include <algorithm>
+#include <iostream>
+
+std::pair<std::pair<std::string, std::string>, std::pair<std::vector<std::string>, float>> GraphProcessor::findShortestPath(const std::string &source, const std::string &target)
+{
+    using Pair = std::pair<float, std::string>;
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<>> pq;
     std::unordered_map<std::string, float> dist;
     std::unordered_map<std::string, std::string> prev;
 
-    for (const auto& node : nodes) {
-        dist[node] = std::numeric_limits<float>::infinity();
+    for (const auto &[edgeId, edgesVec] : toEdges)
+    {
+        dist[edgeId] = std::numeric_limits<float>::infinity();
     }
-    dist[source] = 0.0f;
+    dist[source] = 0.0;
+    pq.emplace(0.0, source);
 
-    using Pair = std::pair<float, std::string>;
-    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
-    pq.emplace(0.0f, source);
+    while (!pq.empty())
+    {
+        auto [currCost, u] = pq.top();
+        pq.pop();
+        if (currCost > dist[u])
+            continue;
+        if (u == target)
+            continue;
 
-    while (!pq.empty()) {
-        auto [currentDist, u] = pq.top(); pq.pop();
-        if (u == target) break;
-        if (!toNodes.count(u)) continue;
-
-        for (const std::string& v : toNodes[u]) {
-            auto it = edges.find({u, v});
-            if (it == edges.end()) continue;
-
-            float cost = currentDist + it->second.len;
-            if (cost < dist[v]) {
-                dist[v] = cost;
-                prev[v] = u;
-                pq.emplace(cost, v);
+        if (toEdges.count(u))
+        {
+            for (const Edge &edge : toEdges[u])
+            {
+                std::string v = edge.id;
+                float weight = edge.len / (edge.speed > 0 ? edge.speed : 1.0);
+                float alt = dist[u] + weight;
+                if (alt < dist[v])
+                {
+                    dist[v] = alt;
+                    prev[v] = u;
+                    pq.emplace(alt, v);
+                }
             }
         }
     }
 
-    std::vector<std::string> path;
-    if (dist[target] == std::numeric_limits<float>::infinity()) {
-        results[{source, target}] = {{}, std::numeric_limits<float>::infinity()};
-        return;
+    if (dist[target] < std::numeric_limits<float>::infinity())
+    {
+        std::vector<std::string> path;
+        std::string at = target;
+        while (at != source)
+        {
+            path.push_back(at);
+            at = prev[at];
+        }
+        path.push_back(source);
+        std::reverse(path.begin(), path.end());
+        results[{source, target}] = {path, dist[target]};
+        return{
+            {source, target},
+            results[{source, target}]
+        };
+    }else{
+        return {
+            {source, target},
+            {{}, std::numeric_limits<float>::infinity()}
+        };
     }
-
-    std::string current = target;
-    while (current != source) {
-        path.push_back(current);
-        current = prev[current];
-    }
-    path.push_back(source);
-    std::reverse(path.begin(), path.end());
-
-    results[{source, target}] = {path, dist[target]};
 }
 
-std::vector<std::string> GraphProcessor::toEdge(std::vector<std::string> nodes){
-    std::vector<std::string> path;
-    for(int i=1; i<nodes.size();i++){
-        path.push_back(this->edges[{nodes[i-1], nodes[i]}].id);
+std::vector<std::string> GraphProcessor::shortestPath(std::string source, std::string target)
+{
+    auto key = std::make_pair(source, target);
+    if (results.find(key) != results.end())
+    {
+        return results[key].first;
     }
-    return path;
-}
-float GraphProcessor::cheapCost(std::string source, std::string target) {
-    auto it = results.find({source, target});
-    if (it == results.end()) {
-        findShortestPath(source, target);
-    }
-
-    return results[{source, target}].second;
+    auto [krs, vrs] = findShortestPath(source, target);
+    return vrs.first;
 }
 
-std::vector<std::string> GraphProcessor::shortestPath(std::string source, std::string target) {
-    auto it = results.find({source, target});
-    if (it == results.end()) {
-        findShortestPath(source, target);
+float GraphProcessor::cheapCost(std::string source, std::string target)
+{
+    auto key = std::make_pair(source, target);
+    if (results.find(key) != results.end())
+    {
+        return results[key].second;
     }
-
-    return toEdge(results[{source, target}].first);
+    auto [krs, vrs] = findShortestPath(source, target);
+    return vrs.second;
 }

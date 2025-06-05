@@ -19,3 +19,4 @@ public:
     bool validJson(const std::string &jsonString);
 };
 
+

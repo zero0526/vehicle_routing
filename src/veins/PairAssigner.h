@@ -9,9 +9,9 @@
 struct AssignmentResult
 {
     std::string source;
-    std::string target;
+    float departureTime;
     std::vector<std::string> path;
-    float deviation;
+    TimeWindow timeWindow;
 };
 struct PathInfo
 {
@@ -19,28 +19,34 @@ struct PathInfo
     float deviation;
     bool valid;
 };
+struct PairIHash {
+    template <typename T1, typename T2>
+    std::size_t operator()(const std::pair<T1, T2>& pair) const {
+        std::size_t hash1 = std::hash<T1>{}(pair.first);
+        std::size_t hash2 = std::hash<T2>{}(pair.second);
+        return hash1 ^ (hash2 << 1); // Kết hợp hai giá trị băm
+    }
+};
 class PairAssigner
 {
 public:
-    using TimeWindow = std::pair<float, float>;
+    PairAssigner(const std::vector<std::pair<std::string,float>> &sources,
+                 const std::unordered_map<std::string, TimeWindow> &targets,
+                 const std::unordered_map<std::string, std::pair<float, float>> edges,
+                 TaskGenerator &taskGenerator):        sources(sources),
+        targets(targets), edges(edges),  taskGen(taskGenerator) {};
 
-    PairAssigner(const std::vector<std::string> &sources,
-                 const std::vector<std::string> &targets,
-                 const std::unordered_map<std::string, TimeWindow> &targetTimeWindow,
-                 TaskGenerator &taskGenerator);
-
-    std::vector<AssignmentResult> assign(int k);
+    std::vector<AssignmentResult> assign();
 
 private:
-    float calculateDeviation(const std::vector<std::string> &path, const TimeWindow &window);
-    std::vector<std::vector<float>> buildCostMatrix(int k);
-    float findBestPathCost(const std::string &source, const std::string &target, int k);
+    float calculateDeviation(const float arrival, const TimeWindow &window);
+    std::vector<std::vector<float>> buildCostMatrix();
     std::vector<int> solveHungarian(const std::vector<std::vector<float>> &costMatrix);
 
 private:
-    std::vector<std::string> sources;
-    std::vector<std::string> targets;
-    std::unordered_map<std::string, TimeWindow> timeWindows;
+    std::vector<std::pair<std::string,float>> sources;
+    std::unordered_map<std::string, TimeWindow> targets;
+    std::unordered_map<std::string, std::pair<float, float>> edges;
+    std::unordered_map<std::pair<int,int>, std::pair<std::vector<std::string>, float>,PairIHash> pathCache;
     TaskGenerator &taskGen;
-    std::unordered_map<std::string, std::unordered_map<std::string, PathInfo>> cachedPaths;
 };

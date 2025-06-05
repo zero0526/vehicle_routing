@@ -26,6 +26,7 @@
 #include<list>
 #include<sstream>
 #include "veins/modules/application/traci/TraCIDemo11pMessage_m.h"
+#include "TaskGenerator.h"
 
 using namespace veins;
 
@@ -58,24 +59,36 @@ void VehicleControlApp::initialize(int stage)
         EV<<"Send to RSU. Waiting for response from RSU!"<<endl;
     }
 }
+float VehicleControlApp::calculateDeviation(TimeWindow timeWindow, float departureTime){
+    if (departureTime < timeWindow.earlyTime)
+            return timeWindow.earlyTime - departureTime;
+        if (departureTime > timeWindow.lateTime)
+            return departureTime - timeWindow.lateTime;
+        return 0.0f;
+}
 
 void VehicleControlApp::finish()
 {
     DemoBaseApplLayer::finish();
     //EV<<"Reach destination over here"<<endl;
     // statistics recording goes here
+    simtime_t endTime = simTime();
+    double runTime = (endTime - startTime).dbl() + absStartTime;
+    std::string atde;
+    if(hasArrive){
+        atde = "true";
+    }else atde="false";
+    std::ofstream file;
+    file.open("vehicle.csv", std::ios::app);
+    if (file.is_open()) {
+        file << myId<<","<<atde<<","<<runTime<<","<<calculateDeviation(timewindow, runTime)<<","<<depatureTi<< "\n";
+        file.close();
+    }
+    else {
+        EV << "Khong the mo file: " << "vehicle.csv" << endl;
+    }
 }
-//std::string VehicleControlApp::toJson(){
-//    std::ostringstream os;
-//    os<<"{"
-//      <<"\"speed\":\""<<traciVehicle->getSpeed()<<"\","
-//      <<"\"roadId\":\""<<traciVehicle->getRoadId()<<"\","
-//      <<"\"laneId\":\""<<traciVehicle->getLaneId()<<"\","
-//      <<"\"routeId\":\""<<traciVehicle->getRouteId()<<"\","
-//      <<"}";
-//    std::string s = os.str();
-//    return os.str();
-//}
+
 std::string VehicleControlApp::toJson(){
     Json message;
     if (firstMessage){
@@ -138,12 +151,13 @@ void VehicleControlApp::handleSelfMsg(cMessage* msg)
 void VehicleControlApp::handlePositionUpdate(cObject* obj)
 {
     DemoBaseApplLayer::handlePositionUpdate(obj);
-    std::string roadIds;
-        for(const std::string& road:traciVehicle->getPlannedRoadIds()){
-            roadIds = roadIds + " " + road;
-        }
-     EV<<"my id: "<<roadIds<<endl;
-
+    if(!isMove&&traciVehicle->getSpeed()>0){
+        isMove = true;
+        startTime = simTime();
+    }
+    if(traciVehicle->getRoadId()==target){
+        hasArrive = true;
+    }
     // the vehicle has moved. Code that reacts to new positions goes here.
     // member variables such as currentPosition and currentSpeed are updated in the parent class
 
@@ -159,8 +173,8 @@ void VehicleControlApp::handleLowerMsg(cMessage* msg)
         Json jMess;
         jMess.parseJson(message);
         std::string action = jMess.get("action");
+        std::cout<<jMess.get("data")<<std::endl;
         Json jdata;
-
 
         if(strcmp(ret, jMess.get("targetId").c_str()) == 0){
             if(first){
@@ -172,6 +186,9 @@ void VehicleControlApp::handleLowerMsg(cMessage* msg)
                     EV<<myId<<mData<<" the first"<<endl;
                     jdata.parseJson(mData);
                     std::string roadIds = jdata.get("roadIds");
+                    absStartTime = std::stof(jdata.get("starttime"));
+                    timewindow = {std::stof(jdata.get("early")), std::stof(jdata.get("lately"))};
+                    depatureTi = std::stof(jdata.get("departureTime"));
                     std::stringstream ss(roadIds);
                     std::list<std::string> route;
                     std::string id;
@@ -179,6 +196,7 @@ void VehicleControlApp::handleLowerMsg(cMessage* msg)
                         route.push_back(id);
                     }
                     EV<<"end: "<<route.back()<<endl;
+                    target = route.back();
                     bool insp = traciVehicle->changeVehicleRoute(route);
                     if(insp)
                         EV<<"successfully change route"<<endl;

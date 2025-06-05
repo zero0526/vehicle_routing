@@ -38,6 +38,7 @@ OBJS = \
     $O/veins/DijkstraPath.o \
     $O/veins/ET.o \
     $O/veins/GraphProcessor.o \
+    $O/veins/HungarianAlgo.o \
     $O/veins/Json.o \
     $O/veins/PairAssigner.o \
     $O/veins/RSUControlApp.o \

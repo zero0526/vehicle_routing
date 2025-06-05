@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2025-05-31 10:12:21 by Eclipse SUMO duarouter Version 1.18.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+
+    <input>
+        <net-file value="/home/ad/omnetpp-6.1/samples/week6/simulations/veins/map.net.xml"/>
+        <route-files value="trip.trips.xml"/>
+    </input>
+
+    <output>
+        <output-file value="map.rou.xml"/>
+    </output>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <personFlow id="ped1" begin="0" end="50" probability="0.1">
+        <walk from="edge_30" to="edge_138" speed="1.2"/>
+    </personFlow>
+    <vehicle id="0" depart="0.00">
+        <route edges="edge_30 edge_54 edge_78 edge_195 edge_100"/>
+    </vehicle>
+    <vehicle id="1" depart="2.00">
+        <route edges="edge_149 edge_40 edge_66 edge_86 edge_98 edge_202 edge_95 edge_79 edge_55 edge_31 edge_138"/>
+    </vehicle>
+    <vehicle id="2" depart="4.00">
+        <route edges="edge_49 edge_24 edge_177 edge_175 edge_173 edge_171 edge_39 edge_38"/>
+    </vehicle>
+    <vehicle id="3" depart="6.00">
+        <route edges="edge_79 edge_181 edge_53 edge_27 edge_3 edge_112"/>
+    </vehicle>
+    <vehicle id="4" depart="8.00">
+        <route edges="edge_177 edge_70 edge_88 edge_92 edge_101"/>
+    </vehicle>
+    <vehicle id="5" depart="5.00">
+        <route edges="edge_138 edge_139 edge_30 edge_54 edge_78 edge_195 edge_89 edge_192"/>
+    </vehicle>
+    <vehicle id="6" depart="6.00">
+        <route edges="edge_101 edge_91 edge_178 edge_53 edge_27 edge_133"/>
+    </vehicle>
+    <vehicle id="7" depart="7.00">
+        <route edges="edge_32 edge_161 edge_29 edge_135 edge_3 edge_2"/>
+    </vehicle>
+    <vehicle id="8" depart="8.00">
+        <route edges="edge_139 edge_30 edge_54 edge_78 edge_94 edge_203 edge_207"/>
+    </vehicle>
+    <vehicle id="9" depart="9.00">
+        <route edges="edge_63 edge_62 edge_82 edge_197 edge_79 edge_55 edge_29 edge_7 E2"/>
+    </vehicle>
+    <vehicle id="10" depart="10.00">
+        <route edges="edge_62 edge_186 edge_188 edge_67 edge_41"/>
+    </vehicle>
+    <vehicle id="11" depart="11.00">
+        <route edges="edge_161 edge_160 edge_56 edge_184 edge_186 edge_65 edge_39 edge_17 edge_125"/>
+    </vehicle>
+    <vehicle id="12" depart="12.00">
+        <route edges="edge_91 edge_193 edge_69 edge_173 edge_171 edge_39 edge_17 edge_16"/>
+    </vehicle>
+    <vehicle id="13" depart="13.00">
+        <route edges="edge_114"/>
+    </vehicle>
+    <vehicle id="14" depart="14.00">
+        <route edges="edge_70 edge_192 edge_51 edge_47 edge_23"/>
+    </vehicle>
+    <vehicle id="15" depart="15.00">
+        <route edges="edge_62 edge_82 edge_96 edge_206 edge_101 edge_75 edge_51 edge_25 edge_48"/>
+    </vehicle>
+    <vehicle id="16" depart="16.00">
+        <route edges="edge_199 edge_197 edge_94"/>
+    </vehicle>
+    <vehicle id="17" depart="17.00">
+        <route edges="edge_169 edge_168 edge_170 edge_172 edge_43 edge_21 edge_20"/>
+    </vehicle>
+    <vehicle id="18" depart="18.00">
+        <route edges="edge_67 edge_172 edge_68 edge_192 edge_178 edge_53 edge_27 edge_26"/>
+    </vehicle>
+    <vehicle id="19" depart="19.00">
+        <route edges="edge_73 edge_50 edge_74 edge_100 edge_207 edge_205"/>
+    </vehicle>
+    <vehicle id="20" depart="20.00">
+        <route edges="edge_43 edge_42 edge_68 edge_88 edge_194 edge_94 edge_104"/>
+    </vehicle>
+    <vehicle id="21" depart="21.00">
+        <route edges="edge_14 edge_146 edge_148 edge_150"/>
+    </vehicle>
+</routes>

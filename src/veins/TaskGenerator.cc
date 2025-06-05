@@ -8,6 +8,8 @@
 #include <queue>
 #include <functional>
 #include <limits>
+#include <sstream>
+#include <iostream>
 
 double getRandomDouble(double min, double max)
 {
@@ -17,246 +19,336 @@ double getRandomDouble(double min, double max)
     return dist(gen);
 }
 
-std::unordered_map<std::string, std::pair<float, float>> TaskGenerator::genTImeWindow(int n)
+std::unordered_map<std::string, TimeWindow> TaskGenerator::genTimeWindow(int n)
 {
-    float maxPeriod = 0.0;
-    for (auto [k, v] : this->edges)
+    std::unordered_set<std::string> edges;
+    float minTime = std::numeric_limits<float>::max();
+    float maxTime = std::numeric_limits<float>::min();
+    for (const auto &[from, toVec] : fromEdges)
     {
-        float t = v.len / v.speed;
-        if (maxPeriod < t)
-            maxPeriod = t;
-    }
-    int len = this->nodes.size();
-    if (n > len || n == 0)
-        return {};
-    std::unordered_set<int> unduplicate;
-    std::unordered_map<std::string, std::pair<float, float>> rs;
-    std::vector<std::string> ns(this->nodes.begin(), this->nodes.end());
-    while (n > rs.size())
-    {
-        int idx = getRandomDouble(1, len) - 1;
-        while (unduplicate.find(idx) != unduplicate.end())
+        edges.insert(from);
+        for (const auto &edge : toVec)
         {
-            idx = (idx + 1) % len;
-        }
-        unduplicate.insert(idx);
-        float var = getRandomDouble(maxPeriod / 4.0, maxPeriod / 2.0);
-        float mean = getRandomDouble(maxPeriod / 2.0, maxPeriod * (len - 1) / 2.0);
-        rs[ns[idx]] = {mean - var / 2.0, mean + var / 2.0};
-    }
-    return rs;
-}
-
-DijkstraResult TaskGenerator::dijkstra(
-    const std::string &source,
-    const std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> &customEdges)
-{
-
-    std::unordered_map<std::string, float> dist;
-    std::unordered_map<std::string, std::string> prev;
-    for (const auto &node : this->nodes)
-        dist[node] = std::numeric_limits<float>::infinity();
-    dist[source] = 0;
-
-    auto cmp = [&dist](const std::string &a, const std::string &b)
-    {
-        return dist[a] > dist[b];
-    };
-    std::priority_queue<std::string, std::vector<std::string>, decltype(cmp)> pq(cmp);
-    pq.push(source);
-
-    while (!pq.empty())
-    {
-        std::string u = pq.top();
-        pq.pop();
-        if (this->toNodes.find(u) == this->toNodes.end())
-            continue;
-        for (const auto &v : this->toNodes.at(u))
-        {
-            auto it = customEdges.find({u, v});
-            if (it == customEdges.end())
-                continue;
-            float len = it->second.len / it->second.speed;
-            if (dist[v] > dist[u] + len)
-            {
-                dist[v] = dist[u] + len;
-                prev[v] = u;
-                pq.push(v);
-            }
+            edges.insert(edge.id);
+            minTime = std::min(minTime, edge.len / edge.speed);
+            maxTime = std::max(maxTime, edge.len / edge.speed);
         }
     }
-    return {dist, prev};
+    std::vector<std::string> edgeVector(edges.begin(), edges.end());
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::shuffle(edgeVector.begin(), edgeVector.end(), gen);
+    edgeVector.resize(std::min(n, static_cast<int>(edgeVector.size())));
+
+    std::unordered_map<std::string, TimeWindow> timeWindows;
+    for (const auto &edge : edgeVector)
+    {
+        float earlyTime = getRandomDouble(1 * maxTime, 2 * maxTime);
+
+        float extraTime = getRandomDouble(minTime, 2 * minTime);
+        float lateTime = earlyTime + extraTime;
+
+        timeWindows[edge] = {earlyTime, lateTime};
+    }
+    return timeWindows;
 }
 
-std::vector<std::string> TaskGenerator::reconstructPath(
-    const std::string &source,
-    const std::string &target,
-    const std::unordered_map<std::string, std::string> &prev)
-{
 
+std::vector<std::string> reconstructNodePath(
+    const std::unordered_map<std::string, std::string> &prev,
+    const std::string &source,
+    const std::string &target)
+{
     std::vector<std::string> path;
-    std::string cur = target;
-    while (cur != source)
+    std::string current = target;
+    while (prev.count(current) || current == source)
     {
-        if (prev.find(cur) == prev.end())
+        path.push_back(current);
+        if (current == source)
+            break;
+        if (!prev.count(current))
+        {
             return {};
-        path.push_back(cur);
-        cur = prev.at(cur);
+        }
+        current = prev.at(current);
     }
-    path.push_back(source);
+    if (path.empty() || path.back() != source)
+        return {};
     std::reverse(path.begin(), path.end());
     return path;
 }
 
-std::vector<std::vector<std::string>> TaskGenerator::kShortestPath(
-    std::string source, std::string target, int k)
+float calculate_current_penalty(float arrivalTime, const TimeWindow &tw)
 {
-
-    std::vector<std::vector<std::string>> result;
-    auto base = dijkstra(source, this->edges);
-    auto firstPath = reconstructPath(source, target, base.prev);
-    if (firstPath.empty())
-        return result;
-    result.push_back(firstPath);
-
-    using Path = std::vector<std::string>;
-    using PathEntry = std::pair<float, Path>;
-    auto pathCost = [&](const Path &path)
+    if (arrivalTime == std::numeric_limits<float>::infinity())
     {
-        float cost = 0;
-        for (size_t i = 0; i + 1 < path.size(); ++i)
+        return std::numeric_limits<float>::infinity();
+    }
+    float penalty = 0.0f;
+    if (arrivalTime < tw.earlyTime)
+    {
+        penalty = tw.earlyTime - arrivalTime;
+    }
+    else if (arrivalTime > tw.lateTime)
+    {
+        penalty = arrivalTime - tw.lateTime;
+    }
+    return penalty;
+}
+
+std::string TaskGenerator::joinPath(const std::vector<std::string> &path)
+{
+    std::ostringstream oss;
+    for (const auto &node : path)
+    {
+        oss << node << " ";
+    }
+    return oss.str();
+}
+float TaskGenerator::timeFunc(std::vector<std::string>path){
+    float total_time = 0.0f;
+    for (const auto &edge : path)
+    {
+        auto it = edges.find(edge);
+        if (it != edges.end())
         {
-            auto it = this->edges.find({path[i], path[i + 1]});
-            if (it == this->edges.end())
-                return std::numeric_limits<float>::infinity();
-            cost += it->second.len / it->second.speed;
+            total_time += it->second.first / it->second.second; // len / speed
         }
-        return cost;
-    };
+    }
+    return total_time;
+}
 
-    auto cmp = [](const PathEntry &a, const PathEntry &b)
-    {
-        return a.first > b.first;
-    };
-    std::priority_queue<PathEntry, std::vector<PathEntry>, decltype(cmp)> candidates(cmp);
+std::pair<std::vector<std::string>, float> TaskGenerator::findBestTimeWindowPath(
+    std::string source,
+    std::pair<std::string, TimeWindow> target_info)
+{
+    auto [_, shortest_result] = graphProcessor.findShortestPath(source, target_info.first);
+    auto& [initial_path, initial_arrival_time] = shortest_result;
 
-    for (int i = 1; i < k; ++i)
-    {
-        const Path &lastPath = result.back();
-        for (size_t j = 0; j < lastPath.size() - 1; ++j)
-        {
-            std::string spurNode = lastPath[j];
-            Path rootPath(lastPath.begin(), lastPath.begin() + j + 1);
+    if (initial_arrival_time == std::numeric_limits<float>::infinity()) {
+        return {{}, initial_arrival_time};
+    }
 
-            std::set<std::pair<std::string, std::string>> removedEdges;
-            std::unordered_map<std::pair<std::string, std::string>, Edge, pair_hash> tmpEdges = this->edges;
+    if (initial_arrival_time >= target_info.second.earlyTime) {
+        return {initial_path, initial_arrival_time};
+    }
 
-            for (const auto &p : result)
-            {
-                if (p.size() > j && std::equal(rootPath.begin(), rootPath.end(), p.begin()))
-                {
-                    removedEdges.insert({p[j], p[j + 1]});
+    float best_penalty = calculate_current_penalty(initial_arrival_time, target_info.second);
+    float best_time = initial_arrival_time;
+    std::vector<std::string> best_path = initial_path;
+
+    const int max_attempts = 3;
+    int limit = std::min<int>(static_cast<int>(initial_path.size()) - 1, max_attempts);
+
+    for (int i = 1; i <= limit; ++i) {
+        size_t idx = initial_path.size() - i;
+        const std::string& current_edge = initial_path[idx];
+
+        auto edge_it = edges.find(current_edge);
+        if (edge_it == edges.end() || edge_it->second.second == 0.0f) {
+            continue; // Skip if edge not found or speed is zero
+        }
+
+        std::vector<std::string> prefix_path(initial_path.begin(), initial_path.begin() + idx);
+        if (prefix_path.empty()) break;
+
+        const std::string& last_edge = prefix_path.back();
+        auto to_it = toEdges.find(last_edge);
+        if (to_it == toEdges.end()) continue;
+
+        for (const Edge& next_edge : to_it->second) {
+            if (next_edge.id == current_edge) continue;
+
+            auto [__, alt_result] = graphProcessor.findShortestPath(next_edge.id, target_info.first);
+            auto& [alt_path, alt_arrival] = alt_result;
+            if (alt_arrival == std::numeric_limits<float>::infinity()) continue;
+
+            // Reserve capacity to avoid reallocation
+            std::vector<std::string> candidate_path;
+            candidate_path.reserve(prefix_path.size() + alt_path.size());
+            candidate_path.insert(candidate_path.end(), prefix_path.begin(), prefix_path.end());
+            candidate_path.insert(candidate_path.end(), alt_path.begin(), alt_path.end());
+
+            float candidate_time = timeFunc(candidate_path);
+            float penalty = calculate_current_penalty(candidate_time, target_info.second);
+
+            if (penalty < best_penalty) {
+                best_penalty = penalty;
+                best_time = candidate_time;
+                best_path = std::move(candidate_path);
+
+                if (penalty == 0.0f) {
+                    return {best_path, best_time}; // Found perfect match
                 }
             }
-            for (const auto &e : removedEdges)
-                tmpEdges.erase(e);
+        }
+    }
 
-            auto sub = dijkstra(spurNode, tmpEdges);
-            auto spurPath = reconstructPath(spurNode, target, sub.prev);
-            if (spurPath.empty())
-                continue;
+    return {best_path, best_time};
+}
 
-            Path totalPath = rootPath;
-            totalPath.insert(totalPath.end(), spurPath.begin() + 1, spurPath.end());
-            float totalCost = pathCost(totalPath);
-            candidates.push({totalCost, totalPath});
+
+std::unordered_map<float, std::vector<std::string>> TaskGenerator::findKShortestPaths(
+    const std::string &sourceId,
+    const std::string &targetId,
+    int k)
+{
+    struct Path {
+        std::vector<std::string> nodes;
+        float total_length;
+
+        bool operator>(const Path &other) const {
+            return total_length > other.total_length;  // Min-Heap
+        }
+    };
+
+    auto dijkstra = [&](const std::string &start, const std::string &end) -> Path {
+        std::priority_queue<Path, std::vector<Path>, std::greater<Path>> pq;
+        pq.push({{start}, 0.0f});
+
+        std::unordered_set<std::string> visited;
+
+        while (!pq.empty()) {
+            Path path = pq.top();
+            pq.pop();
+            std::string current = path.nodes.back();
+
+            if (current == end) {
+                return path;
+            }
+
+            if (visited.count(current)) continue;
+            visited.insert(current);
+
+            if (toEdges.find(current) == toEdges.end()) continue;
+
+            for (const Edge &edge : toEdges.at(current)) {
+                std::string next = edge.id;
+                float len = edge.len;
+
+                std::vector<std::string> newPath = path.nodes;
+                newPath.push_back(next);
+                pq.push({newPath, path.total_length + len});
+            }
         }
 
-        if (candidates.empty())
-            break;
-        result.push_back(candidates.top().second);
+        return {{}, std::numeric_limits<float>::max()}; // Không tìm thấy đường đi
+    };
+
+    std::vector<Path> shortestPaths;
+    std::set<std::vector<std::string>> pathSet;
+
+    Path firstPath = dijkstra(sourceId, targetId);
+    if (firstPath.nodes.empty()) return {};
+
+    shortestPaths.push_back(firstPath);
+    pathSet.insert(firstPath.nodes);
+
+    std::priority_queue<Path, std::vector<Path>, std::greater<Path>> candidates;
+
+    for (int kIdx = 1; kIdx < k; ++kIdx) {
+        const Path &lastPath = shortestPaths[kIdx - 1];
+
+        for (size_t i = 0; i < lastPath.nodes.size() - 1; ++i) {
+            std::string spurNode = lastPath.nodes[i];
+            std::vector<std::string> rootPath(lastPath.nodes.begin(), lastPath.nodes.begin() + i + 1);
+
+            std::vector<Edge> removedEdges;
+
+            for (const Path &p : shortestPaths) {
+                if (p.nodes.size() > i && std::equal(rootPath.begin(), rootPath.end(), p.nodes.begin())) {
+                    std::string from = p.nodes[i];
+                    std::string to = p.nodes[i + 1];
+
+                    if (toEdges.find(from) == toEdges.end()) continue;
+
+                    auto &edgesFrom = toEdges[from];
+                    auto it = std::remove_if(edgesFrom.begin(), edgesFrom.end(), [&](const Edge &e) {
+                        return e.id == to;
+                    });
+
+                    for (auto remIt = it; remIt != edgesFrom.end(); ++remIt) {
+                        removedEdges.push_back(*remIt);
+                    }
+
+                    edgesFrom.erase(it, edgesFrom.end());
+                }
+            }
+
+            Path spurPath = dijkstra(spurNode, targetId);
+
+            for (const Edge &e : removedEdges) {
+                toEdges[spurNode].push_back(e);
+            }
+
+            if (!spurPath.nodes.empty()) {
+                std::vector<std::string> totalPath = rootPath;
+                totalPath.insert(totalPath.end(), spurPath.nodes.begin() + 1, spurPath.nodes.end());
+
+                if (pathSet.count(totalPath)) continue;
+
+                float totalLength = 0.0f;
+                for (size_t j = 0; j < totalPath.size() - 1; ++j) {
+                    if (toEdges.find(totalPath[j]) == toEdges.end()) {
+                        totalLength = std::numeric_limits<float>::max();
+                        break;
+                    }
+                    const auto &edges = toEdges.at(totalPath[j]);
+                    for (const Edge &e : edges) {
+                        if (e.id == totalPath[j + 1]) {
+                            totalLength += e.len;
+                            break;
+                        }
+                    }
+                }
+
+                Path newPath = {totalPath, totalLength};
+                candidates.push(newPath);
+                pathSet.insert(totalPath);
+            }
+        }
+
+        if (candidates.empty()) break;
+
+        shortestPaths.push_back(candidates.top());
         candidates.pop();
+    }
+
+    std::unordered_map<float, std::vector<std::string>> result;
+    for (const auto &path : shortestPaths) {
+        result[path.total_length] = path.nodes;
     }
 
     return result;
 }
+bool TaskGenerator::feasible(std::vector<std::string> sources, std::vector<std::string> targets) {
+    if (sources.size() != targets.size()) {
+        return false; // Số lượng sources và targets không khớp
+    }
 
-bool TaskGenerator::feasible(std::vector<std::string> sources, std::vector<std::string> targets)
-{
-    std::unordered_map<std::string, std::vector<std::string>> adj;
-    std::unordered_map<std::string, std::string> matchToTarget;
-    std::unordered_map<std::string, bool> visited;
+    std::unordered_map<std::string, bool> usedTargets; // Đánh dấu các targets đã được sử dụng
 
-    for (const std::string &source : sources)
-    {
-        auto result = dijkstra(source, this->edges);
-        for (const std::string &target : targets)
-        {
-            if (result.dist.find(target) != result.dist.end() &&
-                result.dist[target] != std::numeric_limits<float>::infinity())
-            {
-                adj[source].push_back(target);
+    for (const auto& source : sources) {
+        bool foundMatch = false;
+
+        for (const auto& target : targets) {
+            if (usedTargets[target]) {
+                continue; // Target này đã được sử dụng
             }
+
+            auto pathResult= graphProcessor.shortestPath(source, target);
+            if (!pathResult.empty()) {
+                usedTargets[target] = true; \
+                foundMatch = true;
+                break;
+            }
+        }
+
+        if (!foundMatch) {
+            return false;
         }
     }
 
-    std::function<bool(const std::string &)> bpm = [&](const std::string &u)
-    {
-        for (const std::string &v : adj[u])
-        {
-            if (!visited[v])
-            {
-                visited[v] = true;
-                if (matchToTarget.find(v) == matchToTarget.end() || bpm(matchToTarget[v]))
-                {
-                    matchToTarget[v] = u;
-                    return true;
-                }
-            }
-        }
-        return false;
-    };
-
-    int matchCount = 0;
-    for (const std::string &source : sources)
-    {
-        visited.clear();
-        if (bpm(source))
-        {
-            matchCount++;
-        }
-    }
-
-    return matchCount > 0;
-}
-
-bool TaskGenerator::canAssign(std::string source, std::string target)
-{
-    std::unordered_set<std::string> visited;
-    std::queue<std::string> q;
-    q.push(source);
-    visited.insert(source);
-
-    while (!q.empty())
-    {
-        std::string current = q.front();
-        q.pop();
-
-        if (current == target)
-            return true;
-
-        auto it = toNodes.find(current);
-        if (it != toNodes.end())
-        {
-            for (const std::string &neighbor : it->second)
-            {
-                if (visited.count(neighbor) == 0)
-                {
-                    visited.insert(neighbor);
-                    q.push(neighbor);
-                }
-            }
-        }
-    }
-    return false;
+    return true;
 }
